@@ -50,8 +50,9 @@ logvol / --vgname=rootvg --name=lv_root --fstype="xfs" --size=1 --grow
 
 
 
-services --enabled="chronyd,httpd,named"
-firewall --enabled --service=ssh,http,https
+services --enabled="chronyd,httpd,named,sshd"
+selinux --disabled
+firewall --disabled
 bootloader --location=mbr --boot-drive=vda
 graphical
 skipx
@@ -77,10 +78,16 @@ gcc
 python3-devel
 rsync
 policycoreutils-python-utils
+openssh-server
 %end
 
 
 %post --log=/root/ks-post.log
+cat >/etc/ssh/sshd_config.d/10-root-login.conf <<'EOF'
+PermitRootLogin yes
+PasswordAuthentication yes
+EOF
+systemctl enable sshd
 pip3 install Flask Flask-WTF
 
 
