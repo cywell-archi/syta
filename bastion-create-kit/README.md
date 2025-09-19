@@ -16,7 +16,7 @@ Bastion VM 생성 자동화 도구 (Flask 버전)
 sudo dnf install git -y
 
 # 2. git clone 명령어로 저장소의 모든 파일을 다운로드합니다.
-git clone https://github.com/ailee-1111/syta/
+git clone https://github.com/cywell-arch/sytai
 
 # 3. 다운로드된 디렉토리로 이동합니다.
 cd syta/bastion-create-kit

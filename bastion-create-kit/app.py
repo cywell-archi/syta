@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
 import subprocess as sp
-import os, time
+import os, time, random
 
 app = Flask(__name__)
 # flash 메시지 기능을 사용하기 위한 시크릿 키
@@ -16,9 +16,9 @@ rootpw --plaintext ##ROOT_PASSWORD##
 
 
 # BaseOS와 AppStream 리포지토리를 명시적으로 지정
-url --url="http://##HTTP_SERVER_IP##:8080/rhel9.6/BaseOS"
-repo --name="AppStream" --baseurl="http://##HTTP_SERVER_IP##:8080/rhel9.6/AppStream"
-network --bootproto=static --device=enp1s0 --ip=192.168.122.100 --netmask=255.255.255.0 --gateway=192.168.122.1 --nameserver=8.8.8.8,8.8.4.4 --hostname=##HOSTNAME## --activate
+url --url="http://##HOST_IP##:8080/rhel9.6/BaseOS"
+repo --name="AppStream" --baseurl="http://##HOST_IP##:8080/rhel9.6/AppStream"
+network --bootproto=static --device=ens3 --ip=##BASTION_IP## --netmask=255.255.255.0 --gateway=10.0.1.1 --nameserver=8.8.8.8 --hostname=##HOSTNAME## --activate
 
 # --- 핵심 파티션 설정 (수동 방식) ---
 # 1. 디스크의 모든 파티션을 깨끗하게 지웁니다.
@@ -54,9 +54,10 @@ services --enabled="chronyd,httpd,named"
 firewall --enabled --service=ssh,http,https
 bootloader --location=mbr --boot-drive=vda
 graphical
+skipx
 
 %packages
-@^graphical-server-environment
+@^minimal-environment
 haproxy
 bind
 bind-utils
@@ -83,13 +84,6 @@ policycoreutils-python-utils
 pip3 install Flask Flask-WTF
 
 
-# Add user with specified password
-useradd user
-echo 'user:Redhat123!@#' | chpasswd
-
-
-
-
 %end
 
 reboot
@@ -103,8 +97,9 @@ def index():
         try:
             if action == 'generate_kickstart':
                 ks_content = KS_TEMPLATE.replace("##ROOT_PASSWORD##", request.form.get('root_password')) \
-                                        .replace("##HTTP_SERVER_IP##", request.form.get('http_server_ip')) \
-                                        .replace("##HOSTNAME##", request.form.get('hostname')) 
+                                        .replace("##HOSTNAME##", request.form.get('hostname')) \
+                                        .replace("##BASTION_IP##", request.form.get('bastion_ip')) \
+                                        .replace("##HOST_IP##", request.form.get('host_ip'))
 
                 ks_path = "/var/www/html/kickstart/ks.cfg"
                 with open(ks_path, "w") as f:
@@ -141,18 +136,17 @@ def index():
 
 
             elif action == 'create_vm':
-                http_server_ip = request.form.get('http_server_ip')
                 # vCPUs, RAM, Disk Size 값 읽어오기
                 vm_name = request.form.get('vm_name')
-                vcpus = request.form.get('vm_vcpus', '8')
+                vcpus = request.form.get('vm_vcpus', '4')
                 ram_gb = int(request.form.get('vm_ram', '16'))
-                disk_size = request.form.get('disk_size', '500')
+                disk_size = request.form.get('disk_size', '300')
 
                 # RAM을 GB에서 MB로 변환
                 ram_mb = ram_gb * 1024
                 
-                location_url = f"http://{http_server_ip}:8080/rhel9.6/"
-                ks_location = f"http://{http_server_ip}:8080/kickstart/ks.cfg"
+                location_url = f"http://10.0.1.103:8080/rhel9.6/"
+                ks_location = f"http://10.0.1.103:8080/kickstart/ks.cfg"
 
                 disk_dir = "/KVM_data/vm"
                 os.makedirs(disk_dir, exist_ok=True)
@@ -161,17 +155,35 @@ def index():
                     flash(f"❌ 디스크가 이미 존재합니다: {disk_path}", 'danger')
                     return redirect(url_for('index'))
 
+                def gen_mac():
+                    return "52:54:00:%02x:%02x:%02x" % tuple(random.randint(0,255) for _ in range(3))
+
+                MAC = gen_mac()
+                iface = 'ens3'
+                vm_ip = request.form.get('vm_ip')
+                gw = '10.0.1.1'
+                mask = '255.255.255.0'
+
+
+                extra = (
+                        f"rd.neednet=1 rd.net.timeout.carrier=60 "
+                        f"inst.stage2={location_url} inst.repo={location_url} inst.ks={ks_location} "
+                        f"ifname={iface}:{MAC} "
+                        f"ip={vm_ip}::{gw}:{mask}::{iface}:none "
+                        f"inst.ks.device={iface} nameserver=8.8.8.8"
+                )
+
                 # virt-install 명령어에 동적 값 적용
                 virt_install_cmd = [
                     'sudo', 'virt-install',
                     '--name', vm_name,
-                    '--ram', str(ram_mb),
+                    '--memory', str(ram_mb),
                     '--vcpus', vcpus,
                     '--disk', f'path={disk_path},size={disk_size},format=qcow2,bus=virtio',
-                    '--network', 'bridge=virbr0',
+                    '--network', f'bridge=kvmbr0,model=virtio,mac={MAC}',
                     '--graphics', 'vnc,listen=0.0.0.0',
                     '--location', location_url,
-                    f'--extra-args=inst.ks={ks_location}',
+                    '--extra-args', extra,
                     '--noautoconsole'
                 ]
 

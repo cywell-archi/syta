@@ -70,11 +70,14 @@
                         <label for="hostname" class="form-label">VM 호스트명</label>
                         <input type="text" class="form-control" id="hostname" name="hostname" placeholder="bastion.example.com" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="http_server_ip_step2" class="form-label">호스트(HTTP) 서버 IP</label>
-                        <input type="text" class="form-control" id="http_server_ip_step2" name="http_server_ip" placeholder="예: 10.0.1.103" required>
-                        <div class="form-text">Kickstart 설치에 사용할 호스트의 IP 주소입니다.</div>
-                    </div>
+		    <div class="mb-3">
+			<label for="bastion" class="form-label">HOST IP</label>
+			<input type="text" class="form-control" id="host_ip" name="host_ip" placeholder="호스트의 IP를 입력하세요." required>
+		    </div>
+		    <div class="mb-3">
+			<label for="bastion_ip" class="form-label">BASTION IP</label>
+			<input type="text" class="form-control" id="bastion_ip" name="bastion_ip" placeholder="Bastion의 IP를 입력하세요." required>
+		    </div>
                     <button type="submit" name="action" value="generate_kickstart" class="btn btn-success">Kickstart 파일 생성</button>
                 </div>
             </div>
@@ -87,7 +90,7 @@
                 <div class="card-body">
                     <!--  [수정] vCPUs, RAM, Disk Size 드롭다운 추가 -->
 		    <div class="mb-3">
-			<label for="vm_name" class="form-lable">Bastion VM 이름</label> 
+			<label for="vm_name" class="form-label">Bastion VM 이름</label> 
 			<input type="text" class="form-control" id="vm_name" name="vm_name" placeholder="VM의 이름을 입력하세요" required>
 		    </div>
                     <div class="mb-3">
@@ -108,11 +111,10 @@
                             <!-- JavaScript가 옵션을 채웁니다. -->
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="http_server_ip_step3" class="form-label">호스트(HTTP) 서버 IP</label>
-                        <input type="text" class="form-control" id="http_server_ip_step3" name="http_server_ip" placeholder="Kickstart 파일 생성 시 사용한 IP와 동일" required>
-                        <div class="form-text">VM 생성에 사용할 호스트의 IP 주소를 입력하세요.</div>
-                    </div>
+		    <div class="mb-3">
+			<label for="vm_ip" class="form-label">VM IP</label>
+			<input type="text" class="form-control" id="vm_ip" name="vm_ip" placeholder="Bastion의 IP를 입력하세요" required>
+		    </div>
                     <button type="submit" name="action" value="create_vm" class="btn btn-danger">Bastion VM 생성 시작</button>
                 </div>
             </div>
@@ -125,7 +127,7 @@
             const vcpuSelect = document.getElementById('vm_vcpus');
             for (let i = 1; i <= 64; i++) {
                 const option = new Option(i, i);
-                if (i === 8) option.selected = true; // 기본값 8
+                if (i === 4) option.selected = true; // 기본값 4
                 vcpuSelect.add(option);
             }
 
@@ -143,7 +145,7 @@
                     label = `${i / 1000} TB`;
                 }
                 const option = new Option(label, i);
-                if (i === 500) option.selected = true; // 기본값 500
+                if (i === 300) option.selected = true; // 기본값 300
                 diskSelect.add(option);
             }
         });
