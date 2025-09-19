@@ -79,6 +79,8 @@ python3-devel
 rsync
 policycoreutils-python-utils
 openssh-server
+vim
+bash-completion
 %end
 
 
