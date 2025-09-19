@@ -29,12 +29,12 @@ cd syta/bastion-create-kit
 
 
 
-bastion-creator-kit/
-├── 1_setup_host.sh
-├── 2_deploy_app.sh
-├── 3_register_service.sh
-├── app.py
-└── index.html
+bastion-creator-kit/ \n
+├── 1_setup_host.sh \n
+├── 2_deploy_app.sh \n
+├── 3_register_service.sh \n
+├── app.py \n
+└── index.html \n
 
 
 1단계: 호스트 서버 초기 설정
